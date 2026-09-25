@@ -1,0 +1,91 @@
+import hashlib
+import secrets
+
+# Store username and password (simulated server database)
+users = {
+    "admin": "password123"
+}
+
+# Store used challenges to detect replay attacks
+used_challenges = set()
+
+
+def hash_value(text):
+    return hashlib.sha256(text.encode()).hexdigest()
+
+
+def authenticate(username, password):
+    # Check username and password
+    if username not in users or users[username] != password:
+        print("Authentication Failed!")
+        return False
+
+    # Server generates a random challenge
+    challenge = secrets.token_hex(8)
+    print("\nServer Challenge:", challenge)
+
+    # User creates response using password + challenge
+    response = hash_value(password + challenge)
+    print("User Response:", response)
+
+    # Check if challenge was already used
+    if challenge in used_challenges:
+        print("Replay Attack Detected!")
+        return False
+
+    # Verify response
+    expected_response = hash_value(users[username] + challenge)
+
+    if response == expected_response:
+        used_challenges.add(challenge)
+        print("Authentication Successful!")
+        return True
+    else:
+        print("Authentication Failed!")
+        return False
+
+
+# -----------------------------
+# Normal Authentication
+# -----------------------------
+
+print("----- Normal Authentication -----")
+
+username = "admin"
+password = "password123"
+
+authenticate(username, password)
+
+
+# -----------------------------
+# Simulate Replay Attack
+# -----------------------------
+
+print("\n----- Replay Attack Simulation -----")
+
+# Server generates a new challenge
+challenge = secrets.token_hex(8)
+
+# Attacker records the valid response
+valid_response = hash_value(password + challenge)
+
+print("Original Challenge:", challenge)
+print("Recorded Response:", valid_response)
+
+# First use of the response
+print("\nFirst Request:")
+
+if challenge not in used_challenges:
+    expected = hash_value(users[username] + challenge)
+
+    if valid_response == expected:
+        used_challenges.add(challenge)
+        print("Authentication Successful!")
+
+# Replay the same challenge and response
+print("\nReplay Request:")
+
+if challenge in used_challenges:
+    print("Replay Attack Detected!")
+else:
+    print("Authentication Successful!")
